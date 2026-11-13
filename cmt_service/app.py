@@ -1,14 +1,33 @@
-"""CMT service: conferences, submissions, reviews and decisions (to be implemented)."""
+"""CMT service: conferences, submissions, reviews and decisions."""
 import os
+
 from flask import Flask, jsonify
 
+from models import db  # the database object from models.py
+
+# Create the Flask app (the web server for this service)
 app = Flask(__name__)
 
+# Where the database is: Docker gives us DATABASE_URL (PostgreSQL).
+# Without Docker we fall back to a small local test file (SQLite).
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:///cmt_dev.db")
 
+# Connect the database to this app
+db.init_app(app)
+
+# Create all tables from models.py (does nothing if they already exist)
+with app.app_context():
+    db.create_all()
+
+
+# Health check: other servers call this to see if the service is running
 @app.route("/health")
 def health():
     return jsonify(service="cmt_service", status="ok")
 
 
+# Start the server when this file is run directly (python app.py)
 if __name__ == "__main__":
+    # 0.0.0.0 = reachable by the other containers in Docker
+    # PORT comes from Docker; 5002 is the default for this service
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5002)))
