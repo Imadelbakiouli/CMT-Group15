@@ -1,0 +1,40 @@
+# Starts every server in its own container: docker compose up --build
+services:
+  interface:
+    build: ./interface
+    ports: ["5000:5000"]
+    environment:
+      ORCHESTRATOR_URL: http://orchestrator:5001
+    depends_on: [orchestrator]
+
+  orchestrator:
+    build: ./orchestrator
+    environment:
+      PORT: 5001
+      CMT_SERVICE_URL: http://cmt_service:5002
+      AI_AGENT_URL: http://ai_agent:5003
+    depends_on: [cmt_service, ai_agent]
+
+  cmt_service:
+    build: ./cmt_service
+    environment:
+      PORT: 5002
+      DATABASE_URL: postgresql://cmt:${DB_PASSWORD}@db:5432/cmt
+    depends_on: [db]
+
+  ai_agent:
+    build: ./ai_agent
+    environment:
+      PORT: 5003
+
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: cmt
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: cmt
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+volumes:
+  db_data:
