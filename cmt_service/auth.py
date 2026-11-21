@@ -1,7 +1,6 @@
-"""Accounts and sessions: register, log in, log out, current user (T03).
+"""Accounts and sessions (T03): register, log in, log out, who am I.
 
-Covers UR-01, FR-01, SEC-01 (login + 30 min timeout), SEC-02 (bcrypt),
-SEC-09 (input validation), SEC-12 (limit failed logins) and SEC-13 (audit log).
+Related requirements: UR-01, FR-01, SEC-01, SEC-02, SEC-09, SEC-12, SEC-13.
 """
 import hashlib
 import re
@@ -18,13 +17,14 @@ from models import User, UserSession, db, now
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 
 SESSION_IDLE = timedelta(minutes=30)  # SEC-01
-MAX_FAILED_LOGINS = 5                 # SEC-12: lock the account after 5 wrong passwords in a row
+MAX_FAILED_LOGINS = 5                 # SEC-12: 5 wrong passwords in a row and the account gets locked
 LOCK_TIME = timedelta(minutes=15)
 MIN_PASSWORD = 10
-MAX_PASSWORD_BYTES = 72               # bcrypt only looks at the first 72 bytes
+MAX_PASSWORD_BYTES = 72               # bcrypt ignores everything after 72 bytes
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
-# Used to spend the same time on unknown emails as on known ones (stops guessing which emails exist)
+# For unknown emails we still check a fake hash, so the response time
+# does not show whether an email has an account
 _DUMMY_HASH = bcrypt.hashpw(b"dummy-password", bcrypt.gensalt())
 
 
@@ -33,7 +33,7 @@ def error(message, status):
 
 
 def as_utc(value):
-    """SQLite gives back datetimes without timezone; treat those as UTC."""
+    """SQLite gives back dates without a timezone, so we assume UTC."""
     return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
 
 
@@ -42,11 +42,11 @@ def hash_token(token):
 
 
 def hash_password(password):
-    return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()  # salt is created and stored inside the hash
+    return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()  # the salt is stored inside the hash
 
 
 def clean_text(value, max_length, required=False):
-    """Return a trimmed string, or None when the value is invalid."""
+    """Trimmed string, or None if the value is not allowed."""
     if value is None and not required:
         return ""
     if not isinstance(value, str):
@@ -62,7 +62,7 @@ def profile(user):
 
 
 def login_required(view):
-    """Protect a route: needs 'Authorization: Bearer <token>' of an active session (SEC-01)."""
+    """Put this on a route that needs a logged-in user (header: Authorization: Bearer <token>)."""
     @wraps(view)
     def wrapper(*args, **kwargs):
         header = request.headers.get("Authorization", "")
@@ -73,10 +73,10 @@ def login_required(view):
             return error("Login required", 401)
         current = now()
         if current - as_utc(session.last_seen) > SESSION_IDLE:
-            db.session.delete(session)  # inactive for too long: the session ends
+            db.session.delete(session)  # too long inactive, so the session ends
             db.session.commit()
             return error("Session expired, please log in again", 401)
-        session.last_seen = current     # activity keeps the session alive
+        session.last_seen = current     # every request resets the 30 minutes
         db.session.commit()
         g.user = db.session.get(User, session.user_id)
         g.session = session
@@ -109,7 +109,7 @@ def register():
 
     user = User(name=name, email=email, affiliation=affiliation or None, password_hash=hash_password(password))
     db.session.add(user)
-    db.session.flush()  # gives the user an id for the audit log
+    db.session.flush()  # so the user has an id for the audit log
     log_action(user.id, "registered")
     db.session.commit()
     return jsonify(profile(user)), 201
@@ -130,7 +130,7 @@ def login():
             log_action(user.id, "login blocked: account locked")
             db.session.commit()
             return error("Too many failed attempts, try again later", 429)
-        user.failed_logins, user.locked_until = 0, None  # lock has expired
+        user.failed_logins, user.locked_until = 0, None  # the lock is over
 
     stored = user.password_hash.encode() if user else _DUMMY_HASH
     password_ok = bcrypt.checkpw(password.encode(), stored)
@@ -147,7 +147,7 @@ def login():
         return error("Invalid email or password", 401)
 
     user.failed_logins, user.locked_until = 0, None
-    token = secrets.token_urlsafe(32)  # random, unguessable
+    token = secrets.token_urlsafe(32)  # random token
     db.session.add(UserSession(token_hash=hash_token(token), user_id=user.id))
     log_action(user.id, "logged in")
     db.session.commit()
@@ -158,7 +158,7 @@ def login():
 @login_required
 def logout():
     log_action(g.user.id, "logged out")
-    db.session.delete(g.session)  # the token stops working immediately
+    db.session.delete(g.session)  # token is dead from now on
     db.session.commit()
     return jsonify(status="logged out")
 

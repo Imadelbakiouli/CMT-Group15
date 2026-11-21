@@ -1,4 +1,4 @@
-"""Tests for T03 accounts: registration, login, sessions, lockout (UR-01, FR-01, SEC-01, SEC-02, SEC-09, SEC-12, SEC-13)."""
+"""Tests for T03: registration, login, sessions and lockout."""
 from datetime import timedelta
 
 import bcrypt
@@ -7,7 +7,7 @@ from conftest import USER, auth_header, login, register
 
 
 def sys_models(module):
-    """The models module, for checking what was stored in the database."""
+    """The models module, so we can look in the database."""
     import models
     return models
 
@@ -19,7 +19,7 @@ def test_register_creates_account_without_leaking_password(cmt):
     r = register(client)
     assert r.status_code == 201
     body = r.get_json()
-    assert body["email"] == "test.user@example.com"        # email is stored lowercase
+    assert body["email"] == "test.user@example.com"        # saved in lowercase
     assert "password" not in body and "password_hash" not in body
 
 
@@ -35,7 +35,7 @@ def test_register_rejects_bad_input(cmt):
     assert register(client, name="x" * 121).status_code == 400
     assert register(client, email="not-an-email").status_code == 400
     assert register(client, password="short").status_code == 400
-    assert register(client, password="a" * 73).status_code == 400   # bcrypt limit
+    assert register(client, password="a" * 73).status_code == 400   # over the bcrypt limit
     assert register(client, name=["list"]).status_code == 400       # wrong type
     assert client.post("/auth/register", data="not json").status_code == 400
 
@@ -45,13 +45,13 @@ def test_register_rejects_bad_input(cmt):
 def test_password_is_stored_as_salted_bcrypt_hash(cmt):
     client, module = cmt
     register(client)
-    register(client, email="other@example.com")                      # same password, other user
+    register(client, email="other@example.com")                      # same password, different user
     models = sys_models(module)
     with module.app.app_context():
         hashes = [u.password_hash for u in models.User.query.order_by(models.User.id)]
     assert all(h.startswith("$2") for h in hashes)                   # bcrypt format
     assert USER["password"] not in hashes[0]
-    assert hashes[0] != hashes[1]                                    # different salt per user
+    assert hashes[0] != hashes[1]                                    # so the salt is different per user
     assert bcrypt.checkpw(USER["password"].encode(), hashes[0].encode())
 
 
@@ -79,7 +79,7 @@ def test_logout_ends_session(cmt):
     register(client)
     token = login(client).get_json()["token"]
     assert client.post("/auth/logout", headers=auth_header(token)).status_code == 200
-    assert client.get("/auth/me", headers=auth_header(token)).status_code == 401  # token is dead
+    assert client.get("/auth/me", headers=auth_header(token)).status_code == 401  # token no longer works
 
 
 def test_session_expires_after_30_minutes_inactive(cmt):
@@ -93,7 +93,7 @@ def test_session_expires_after_30_minutes_inactive(cmt):
         models.db.session.commit()
     r = client.get("/auth/me", headers=auth_header(token))
     assert r.status_code == 401
-    assert client.get("/auth/me", headers=auth_header(token)).status_code == 401  # and stays gone
+    assert client.get("/auth/me", headers=auth_header(token)).status_code == 401  # and it stays that way
 
 
 def test_activity_keeps_session_alive(cmt):
@@ -103,7 +103,7 @@ def test_activity_keeps_session_alive(cmt):
     models = sys_models(module)
     with module.app.app_context():
         s = models.UserSession.query.one()
-        s.last_seen = s.last_seen - timedelta(minutes=29)   # still inside the window
+        s.last_seen = s.last_seen - timedelta(minutes=29)   # still within 30 minutes
         models.db.session.commit()
     assert client.get("/auth/me", headers=auth_header(token)).status_code == 200
 
@@ -125,7 +125,7 @@ def test_wrong_password_and_unknown_email_give_same_answer(cmt):
     wrong = login(client, password="wrong-password-123")
     unknown = login(client, email="nobody@example.com")
     assert wrong.status_code == unknown.status_code == 401
-    assert wrong.get_json() == unknown.get_json()                    # no hint which emails exist
+    assert wrong.get_json() == unknown.get_json()                    # nothing shows which emails exist
 
 
 def test_account_locks_after_five_failed_logins(cmt):
@@ -133,7 +133,7 @@ def test_account_locks_after_five_failed_logins(cmt):
     register(client)
     for _ in range(5):
         assert login(client, password="wrong-password-123").status_code == 401
-    # even the correct password is refused while locked
+    # even the right password is refused while locked
     assert login(client).status_code == 429
 
 
