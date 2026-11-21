@@ -22,6 +22,19 @@ class User(db.Model):
     email = db.Column(db.String(255), unique=True, nullable=False)  # no two accounts with the same email
     affiliation = db.Column(db.String(255))                     # university or company (optional)
     password_hash = db.Column(db.String(255), nullable=False)   # hashed password, never the real one (SEC-02)
+    failed_logins = db.Column(db.Integer, default=0, nullable=False)  # wrong passwords in a row (SEC-12)
+    locked_until = db.Column(db.DateTime(timezone=True))        # login blocked until this time (SEC-12)
+
+
+class UserSession(db.Model):
+    """A logged-in session (SEC-01). Ends after 30 minutes without activity.
+
+    We store only a hash of the token, so a leaked database cannot be used to log in.
+    """
+    token_hash = db.Column(db.String(64), primary_key=True)     # SHA-256 of the token given to the user
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    created_at = db.Column(db.DateTime(timezone=True), default=now, nullable=False)
+    last_seen = db.Column(db.DateTime(timezone=True), default=now, nullable=False)  # last request
 
 
 class Conference(db.Model):
