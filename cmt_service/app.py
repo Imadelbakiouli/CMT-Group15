@@ -4,6 +4,7 @@ import os
 from flask import Flask, jsonify
 
 from auth import auth_bp  # register, login, logout (T03)
+from conferences import conf_bp  # conferences and committee (T06)
 from models import db  # the database object from models.py
 
 # Create the Flask app (the web server for this service)
@@ -16,8 +17,9 @@ app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:/
 # Connect the database to this app
 db.init_app(app)
 
-# Add the account routes (/auth/...)
+# Add the account routes (/auth/...) and conference routes
 app.register_blueprint(auth_bp)
+app.register_blueprint(conf_bp)
 
 # Create all tables from models.py (does nothing if they already exist)
 with app.app_context():
