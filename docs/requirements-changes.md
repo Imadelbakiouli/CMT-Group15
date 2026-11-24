@@ -54,7 +54,7 @@ Status: **Done** (as written) · **Detail** (done, we had to choose something th
 | NFR-01 | Done | Measured with `scripts/load_test.py`: 50 users at the same time, 1000 papers, 300 reviewers, in Docker with PostgreSQL through the HTTPS proxy: p95 = 0.15 s, 0 errors. A slow chair overview (7 s) was found and fixed. See `docs/load-test.md` | #17, #19 |
 | NFR-02 | Not yet | Needs a language model to be meaningful | - |
 | NFR-03 | Detail | PDF at most 20 MB. **Added:** at most 100 pages, and a request limit of 21 MB. Capacity of 1000 submissions / 300 reviewers was tested in the load test (no problems). A real 20 MB upload was not part of it | #6, #7, #19 |
-| NFR-04 | Not yet | There is no web interface yet, only the API | - |
+| NFR-04 | Partly | Simple web page on the interface server (`interface/static/`): register, log in, conferences, invitations, submitting papers, reviewing, results and the AI assistant. Chair actions such as assigning reviewers and decisions are done through the assistant. Tried in Chromium; other browsers and phones not tested yet | web |
 | NFR-05 | Done | The orchestrator forwards requests to the CMT service and AI agent; the components run as separate containers (checked in Docker: only the interface is reachable from outside, ports 5001-5003 are not) | #7, #19 |
 | NFR-06 | Partly | Access, export and deletion exist (FR-18). Retention periods and a privacy statement are not written | #8 |
 | NFR-07 | Partly | Daily encrypted backup of database and PDFs (kept 14 days) with verify/restore script. **Tried in Docker with PostgreSQL (24 Nov 2026):** backup files are encrypted, `verify` notices a wrong passphrase, restoring the database removed data added after the backup, restored PDFs have the same checksum, the system works after the restore. The backup container runs every 24 hours, only the first run was seen | #13, #19 |
@@ -66,7 +66,7 @@ Status: **Done** (as written) · **Detail** (done, we had to choose something th
 
 | ID | Status | What we built | PR |
 |---|---|---|---|
-| SEC-01 | Detail | Login needed for everything except register/login/health. The login is a random token in the `Authorization` header (not a cookie); only a hash of it is stored. 30 minutes of inactivity ends the session | #3 |
+| SEC-01 | Detail | Login needed for everything except register/login/health. The login is a random token in the `Authorization` header; only a hash of it is stored. 30 minutes of inactivity ends the session. **Web page:** the interface server keeps the token in an HttpOnly, SameSite=Strict cookie (`cmt_session`) and adds the header itself, so JavaScript on the page can never read the token | #3, web |
 | SEC-02 | Done | bcrypt with salt, cost 12 (`BCRYPT_ROUNDS`, the tests use 4) | #3 |
 | SEC-03 | Detail | Roles belong to one conference (chair of A is nothing in B). Checked in the backend on every route, deny by default. Someone without access to another person's data gets "404 not found" (so ids are not revealed); a wrong role in a conference gets 403. Denied tries are logged | #4, #6 |
 | SEC-04 | Done | An author can never be assigned to or review their own paper. A chair who wrote a paper cannot assign reviewers to it, read its reviews, record or release its decision, and sees no details of it in overviews. If the only chair wrote a paper nobody can decide on it | #5, #11, #12 |

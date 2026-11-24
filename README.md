@@ -23,7 +23,8 @@ You should see `"ok"` for the interface, orchestrator, cmt_service and ai_agent.
 
 - **Port 5000 is busy** (on a Mac, AirPlay Receiver uses it): add `INTERFACE_PORT=5055` to `.env` and use that port.
 - `.env` is never committed. `DB_PASSWORD=change-me` is fine on your own computer. Use a real password and a real `CSRF_SECRET` anywhere else.
-- There is no web page yet, only the API. Anything that changes data needs a CSRF token: first `GET /` (the cookie `csrf_token` is set), then send its value as the header `X-CSRF-Token` and the cookie back. Examples in `tests/test_orchestrator.py`; the assistant is at `POST /api/ai/chat`.
+- **Web page:** open http://localhost:5000 in your browser (or your `INTERFACE_PORT`). Register, log in, and use the conferences, papers, reviews and the AI assistant from there. With `COOKIE_SECURE=false` in `.env` this works over plain http on your own computer.
+- **API:** everything on the page is also available as an API under `/api/cmt/...` and `/api/ai/chat`. Anything that changes data needs a CSRF token: first `GET /` (the cookie `csrf_token` is set), then send its value as the header `X-CSRF-Token` and the cookie back. Examples in `tests/test_orchestrator.py`.
 - On Windows run the `scripts/*.sh` files in Git Bash or WSL. The containers themselves need nothing special.
 
 ## Run the tests (no Docker needed)
