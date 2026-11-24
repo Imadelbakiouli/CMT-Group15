@@ -337,3 +337,34 @@ def test_mailer_uses_smtp_when_configured(env, monkeypatch):
     env["mailer"].send_email("a@example.com", "Hi", "text")
     assert calls == [("connect", "mail.example.org", 587), ("starttls",), ("login", "cmt"), ("send", "a@example.com")]
     assert env["mailer"].OUTBOX == []
+
+
+# ---- speed (NFR-01, found with scripts/load_test.py) ----
+
+def test_results_overview_needs_the_same_number_of_queries_for_many_papers(env):
+    """With 1000 papers the overview took 7 seconds because it asked the database several times per paper."""
+    from sqlalchemy import event
+
+    def count_queries():
+        with env["module"].app.app_context():
+            engine = env["m"].db.engine
+        statements = []
+        listener = lambda conn, cursor, statement, *rest: statements.append(statement)
+        event.listen(engine, "before_cursor_execute", listener)
+        try:
+            assert env["client"].get(f"/conferences/{env['conf']}/results", headers=env["chair"]).status_code == 200
+        finally:
+            event.remove(engine, "before_cursor_execute", listener)
+        return len(statements)
+
+    few = count_queries()
+    with env["module"].app.app_context():
+        m = env["m"]
+        for i in range(40):
+            s = m.Submission(conference_id=env["conf"], title=f"Extra {i}", abstract="x")
+            m.db.session.add(s)
+            m.db.session.flush()
+            m.db.session.add(m.SubmissionAuthor(submission_id=s.id, user_id=env["alice_id"], is_corresponding=True))
+        m.db.session.commit()
+    many = count_queries()
+    assert many == few and few <= 12, (few, many)

@@ -3,6 +3,7 @@
 Related requirements: UR-01, FR-01, SEC-01, SEC-02, SEC-09, SEC-12, SEC-13.
 """
 import hashlib
+import os
 import re
 import secrets
 from datetime import datetime, timedelta, timezone
@@ -23,9 +24,17 @@ MIN_PASSWORD = 10
 MAX_PASSWORD_BYTES = 72               # bcrypt ignores everything after 72 bytes
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
+def bcrypt_rounds():
+    """How much work one password hash costs. 12 for real use. The tests set BCRYPT_ROUNDS=4 to run fast."""
+    try:
+        return max(4, min(int(os.environ.get("BCRYPT_ROUNDS", 12)), 15))
+    except ValueError:
+        return 12
+
+
 # For unknown emails we still check a fake hash, so the response time
 # does not show whether an email has an account
-_DUMMY_HASH = bcrypt.hashpw(b"dummy-password", bcrypt.gensalt())
+_DUMMY_HASH = bcrypt.hashpw(b"dummy-password", bcrypt.gensalt(bcrypt_rounds()))
 
 
 def error(message, status):
@@ -42,7 +51,7 @@ def hash_token(token):
 
 
 def hash_password(password):
-    return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()  # the salt is stored inside the hash
+    return bcrypt.hashpw(password.encode(), bcrypt.gensalt(bcrypt_rounds())).decode()  # the salt is stored inside the hash
 
 
 def clean_text(value, max_length, required=False):
