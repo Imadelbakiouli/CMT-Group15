@@ -104,8 +104,10 @@ def stack(monkeypatch):
         pass
 
     s = Stack()
-    s.cmt = load_service("cmt_service").app.test_client()
-    s.ai = load_service("ai_agent").app.test_client()
+    s.cmt_module = load_service("cmt_service")
+    s.cmt = s.cmt_module.app.test_client()
+    s.ai_module = load_service("ai_agent")
+    s.ai = s.ai_module.app.test_client()
     s.orchestrator = load_service("orchestrator").app.test_client()
     s.interface = load_service("interface").app.test_client()
     s.routes = {"http://cmt.test": s.cmt, "http://ai.test": s.ai, "http://orch.test": s.orchestrator}
@@ -118,7 +120,7 @@ def stack(monkeypatch):
                 if client is None:
                     raise requests.ConnectionError("server is down")
                 return FakeAnswer(client.open(url[len(base):], method=method, query_string=params,
-                                              data=data, headers=headers))
+                                              data=data, json=kwargs.get("json"), headers=headers))
         raise requests.ConnectionError("unknown server")
 
     monkeypatch.setattr(requests, "request", fake_request)
