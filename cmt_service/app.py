@@ -3,6 +3,7 @@ import os
 
 from flask import Flask, jsonify
 
+from chair_assignments import chair_bp  # assigning reviewers and progress (T09)
 from auth import auth_bp  # register, login, logout (T03)
 from conferences import conf_bp  # conferences and committee (T06)
 from user_profile import profile_bp  # profile and personal data (T04)
@@ -24,6 +25,7 @@ app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:/
 db.init_app(app)
 
 # Add the account routes (/auth/...) and conference routes
+app.register_blueprint(chair_bp)
 app.register_blueprint(auth_bp)
 app.register_blueprint(profile_bp)
 app.register_blueprint(conf_bp)
