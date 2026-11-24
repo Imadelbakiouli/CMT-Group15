@@ -22,7 +22,7 @@ Status: **Done** (as written) · **Detail** (done, we had to choose something th
 | UR-09 | Done | Overall score and confidence 1-5 and comments, editable until the review deadline | #5 |
 | UR-10 | Detail | Submit, edit/replace and withdraw. Only the corresponding author (the person who submitted) can edit or withdraw; co-authors can read | #10 |
 | UR-11 | Done | Authors see status, and decision plus reviews after release | #12 |
-| UR-12 | Not yet | AI assistant (T13) | - |
+| UR-12 | Partly | AI assistant that understands a fixed set of sentences (about 16 kinds of requests, one action per message). **No language model yet**, so no free natural language | #18 |
 
 ## Functional requirements
 
@@ -43,8 +43,8 @@ Status: **Done** (as written) · **Detail** (done, we had to choose something th
 | FR-13 | Changed | Title (at most 255), abstract (at most 5000), PDF, up to 20 co-authors. **Co-authors must already have an account**, because the database links co-authors to users | #10 |
 | FR-14 | Detail | Edit/replace before the submission deadline. Withdrawing is possible at any time until a decision exists (the requirement names no deadline). A replaced PDF is deleted from disk | #10 |
 | FR-15 | Done | `GET /submissions/<id>/result`: status always, decision and reviews only after release | #12 |
-| FR-16 | Not yet | AI assistant (T13) | - |
-| FR-17 | Not yet | Confirmation before important actions (T13) | - |
+| FR-16 | Partly | See UR-12. Tools for lookups, invitations, assigning reviewers, decisions and withdrawing. Not yet: creating conferences, inviting reviewers, submitting papers (needs a PDF) | #18 |
+| FR-17 | Done | Withdrawing a paper, recording a decision and releasing a decision (sends email) wait for a "yes" from the same user, once, within 5 minutes | #18 |
 | FR-18 | Changed | Export as JSON (own profile, roles, invitations, own papers, own reviews, own activity; nothing about others). Deletion = anonymise name, email and affiliation, end all logins, remove pending invitations. Papers and reviews stay in the conference but are no longer linked to a person. Not handled: a chair who deletes their account leaves a conference without chair | #8 |
 
 ## Non-functional requirements
@@ -52,15 +52,15 @@ Status: **Done** (as written) · **Detail** (done, we had to choose something th
 | ID | Status | What we built | PR |
 |---|---|---|---|
 | NFR-01 | Not yet | Load test planned (T18) | - |
-| NFR-02 | Not yet | Needs the AI assistant | - |
+| NFR-02 | Not yet | Needs a language model to be meaningful | - |
 | NFR-03 | Detail | PDF at most 20 MB. **Added:** at most 100 pages, and a request limit of 21 MB. Capacity of 1000 submissions / 300 reviewers not measured yet | #6, #7 |
 | NFR-04 | Not yet | There is no web interface yet, only the API | - |
 | NFR-05 | Done | The orchestrator forwards requests to the CMT service and AI agent; the four components run as separate containers | #7 |
 | NFR-06 | Partly | Access, export and deletion exist (FR-18). Retention periods and a privacy statement are not written | #8 |
 | NFR-07 | Partly | Daily encrypted backup of database and PDFs (kept 14 days) with verify/restore script. **Not tried in Docker yet** | #13 |
-| NFR-08 | Not yet | Needs the AI assistant | - |
+| NFR-08 | Not yet | Needs a language model and a user test | - |
 | NFR-09 | Not yet | User test (T19) | - |
-| NFR-10 | Not yet | Needs the AI assistant | - |
+| NFR-10 | Not yet | 50 test instructions exist (`tests/ai_instructions.py`), the rule-based planner gets 100% but the same people wrote patterns and instructions. Must be measured with a real model and instructions written by someone else | #18 |
 
 ## Security requirements
 
@@ -72,8 +72,8 @@ Status: **Done** (as written) · **Detail** (done, we had to choose something th
 | SEC-04 | Done | An author can never be assigned to or review their own paper. A chair who wrote a paper cannot assign reviewers to it, read its reviews, record or release its decision, and sees no details of it in overviews. If the only chair wrote a paper nobody can decide on it | #5, #11, #12 |
 | SEC-05 | Detail | Reviewers never see authors. PDF metadata and comments/annotations are removed at upload and again at download. Authors see reviews only after release, without any reviewer information. **Not possible:** names written inside the text of the paper itself | #5, #6, #12 |
 | SEC-06 | Done | Deadlines for submitting, editing and reviewing are checked on the server; refused tries are logged and store nothing | #5, #10 |
-| SEC-07 | Not yet | AI assistant (T13). The orchestrator already passes the user's own token on, so the agent can only do what that user can do | #7 |
-| SEC-08 | Not yet | Prompt-injection defence (T14) | - |
+| SEC-07 | Done | Every assistant action is a normal API call with the user's own token, so the backend applies the same checks. The assistant has no rights of its own. Actions are marked "[via AI assistant]" in the audit log | #7, #18 |
+| SEC-08 | Detail | The planner only sees the user's own sentence; what the system answers (titles, abstracts, reviews) is only shown and never goes back into the planner. One message leads to at most one action. Tested with instructions hidden in a title, abstract and review. Must be checked again when a language model is added | #18 |
 | SEC-09 | Detail | Safe database queries (SQLAlchemy), strict checks on input, only JSON or file uploads are accepted, security headers, errors without details. Output escaping: text is stored as typed and sent as JSON, whoever shows it on a web page must insert it as text, never as HTML | #3, #6 |
 | SEC-10 | Done | Content must start with `%PDF-` (name and Content-Type are not trusted), at most 20 MB, not encrypted, 1-100 pages, rewritten as a new PDF without annotations, page actions and metadata, stored under a random name, readable only by the service | #6 |
 | SEC-11 | Partly | Backups are encrypted (AES-256). Optional HTTPS proxy (TLS 1.2+, HSTS). **Not done:** traffic between the containers is plain http; PDFs and the database are not encrypted on disk. **Not tried in Docker yet** | #13 |

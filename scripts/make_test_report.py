@@ -36,6 +36,7 @@ FILE_REQUIREMENTS = {
     "test_csrf.py": ["SEC-09", "SEC-12"],
     "test_orchestrator.py": ["NFR-05", "SEC-03", "SEC-09"],
     "test_backup.py": ["NFR-07", "SEC-11"],
+    "test_ai_agent.py": ["UR-12", "FR-16", "FR-17", "SEC-07", "SEC-08"],
     "test_report_script.py": [],        # tests of this script itself, no requirement
 }
 
@@ -64,6 +65,7 @@ INTEGRATION_TESTS = {
     "test_assigned_paper_shows_no_author_to_the_reviewer",  # assignment (T09) + reviewing (T10)
     "test_assign_reviewer_by_email_or_id",                 # assignment (T09) + reviewing (T10)
     "test_stored_file_has_random_name_and_no_author_metadata",   # submissions (T07) + uploads (T08)
+    "test_full_chain_through_interface_and_orchestrator",       # interface + orchestrator + assistant + CMT service
 }
 
 
