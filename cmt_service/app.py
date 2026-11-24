@@ -5,6 +5,7 @@ from flask import Flask, jsonify
 
 from auth import auth_bp  # register, login, logout (T03)
 from conferences import conf_bp  # conferences and committee (T06)
+from user_profile import profile_bp  # profile and personal data (T04)
 from reviews import review_bp  # reviewing (T10)
 from models import db  # the database object from models.py
 from api_security import init_security  # request checks and security headers (T05)
@@ -23,6 +24,7 @@ db.init_app(app)
 
 # Add the account routes (/auth/...) and conference routes
 app.register_blueprint(auth_bp)
+app.register_blueprint(profile_bp)
 app.register_blueprint(conf_bp)
 app.register_blueprint(review_bp)
 
