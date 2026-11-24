@@ -37,6 +37,7 @@ FILE_REQUIREMENTS = {
     "test_orchestrator.py": ["NFR-05", "SEC-03", "SEC-09"],
     "test_backup.py": ["NFR-07", "SEC-11"],
     "test_ai_agent.py": ["UR-12", "FR-16", "FR-17", "SEC-07", "SEC-08"],
+    "test_ai_gemini.py": ["UR-12", "FR-16", "NFR-02", "SEC-07", "SEC-08"],
     "test_web_interface.py": ["NFR-04", "UR-01", "SEC-01", "SEC-03", "SEC-09", "SEC-12"],
     "test_report_script.py": [],        # tests of this script itself, no requirement
 }

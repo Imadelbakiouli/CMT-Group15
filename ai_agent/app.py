@@ -20,6 +20,7 @@ from flask import Flask, jsonify, request
 
 import agent_backend
 from agent_confirm import PendingActions, owner_of
+from agent_gemini import GeminiPlanner
 from agent_planner import RuleBasedPlanner
 from agent_tools import TOOLS, ToolError, confirm_text, validate
 
@@ -29,9 +30,23 @@ MAX_MESSAGE = 2000
 MAX_ITEMS = 50                                     # long lists are cut, the answer stays small
 
 pending = PendingActions()
-planner = RuleBasedPlanner()   # a language model planner can replace this (see docs/ai-assistant.md)
-if os.environ.get("AI_PLANNER", "rules") != "rules":
-    raise SystemExit("AI_PLANNER: only 'rules' is available yet")
+
+
+def make_planner(kind):
+    """AI_PLANNER in .env chooses who understands the user's sentence (see docs/ai-assistant.md):
+    "rules"  = fixed sentence patterns, no language model and no API key (default, used by the tests)
+    "gemini" = Google Gemini, understands free text, needs GEMINI_API_KEY
+    """
+    if kind == "rules":
+        return RuleBasedPlanner()
+    if kind == "gemini":
+        if not os.environ.get("GEMINI_API_KEY"):
+            raise SystemExit("AI_PLANNER=gemini needs GEMINI_API_KEY in .env")
+        return GeminiPlanner.from_env()
+    raise SystemExit("AI_PLANNER must be 'rules' or 'gemini'")
+
+
+planner = make_planner(os.environ.get("AI_PLANNER", "rules"))
 
 
 @app.after_request

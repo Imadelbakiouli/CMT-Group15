@@ -5,13 +5,20 @@ Requirements: UR-12, FR-16, FR-17, SEC-07, SEC-08 (and NFR-02, NFR-08, NFR-10 on
 ## What exists now
 A user types a sentence (`POST /chat` on the AI agent, reachable as `/api/ai/chat` through the interface and orchestrator). The assistant turns it into **one** action in the conference system and answers with the result. Examples: "show my papers", "accept invitation 3", "assign anna@example.org to paper 4 in conference 1", "withdraw paper 4". Say "help" for the list.
 
-**There is no language model yet.** The sentences are understood by a fixed set of patterns (`ai_agent/agent_planner.py`, `RuleBasedPlanner`). This is on purpose for now: no API key, nothing leaves the computer, and everything below can be tested. A language model replaces only the planner (see the end of this file); the safety does not depend on which planner is used.
+There are two planners, chosen with `AI_PLANNER` in `.env`:
+- `rules` (default): a fixed set of sentence patterns (`ai_agent/agent_planner.py`, `RuleBasedPlanner`). No API key, nothing leaves the computer. Used by the tests.
+- `gemini`: Google Gemini understands free text (`ai_agent/agent_gemini.py`, `GeminiPlanner`). Needs `GEMINI_API_KEY` (free key at https://aistudio.google.com, "Get API key"). Model: `GEMINI_MODEL`, default `gemini-flash-latest`.
+
+A planner only decides which tool to call; the safety below does not depend on which planner is used.
+
+**Privacy of the free Gemini tier.** Google's pricing page says that data of the free tier may be used to improve Google's products. Only the sentence the user types is sent (never papers or reviews), but a sentence can contain an email address or a paper number. So: the free tier is fine for the prototype and the demo with made-up data; with real conference data use a paid tier (not used for training) or a local model.
 
 ## The parts (ai_agent/)
 | File | Job |
 |---|---|
 | `agent_tools.py` | The list of things the assistant may do. Each tool is one call to the CMT service API. Checks every argument. Marks important actions as `risky` |
-| `agent_planner.py` | Sentence in, one tool call (or a text answer) out. Sees only what the user typed |
+| `agent_planner.py` | Sentence in, one tool call (or a text answer) out, with fixed patterns. Sees only what the user typed |
+| `agent_gemini.py` | The same with Google Gemini: our tool list is given to Gemini as functions, it picks at most one. Only the user's sentence is sent; the key is sent in a header. If Gemini fails, nothing is done |
 | `agent_confirm.py` | Actions that wait for a "yes" (stored in memory, 5 minutes) |
 | `agent_backend.py` | Makes the call to the CMT service with the user's own token |
 | `app.py` | `/chat`: puts it together and gives the answer |
