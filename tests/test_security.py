@@ -149,7 +149,7 @@ def test_request_over_the_size_limit_is_refused(cmt):
 def test_errors_are_json_and_show_no_details(cmt):
     client, _ = cmt
     missing = client.get("/does-not-exist")
-    wrong_method = client.delete("/auth/me")
+    wrong_method = client.delete("/auth/login")   # login has no DELETE
     assert missing.status_code == 404 and missing.get_json() == {"error": "Not found"}
     assert wrong_method.status_code == 405 and wrong_method.get_json() == {"error": "Method not allowed"}
     assert b"Traceback" not in missing.data + wrong_method.data
