@@ -191,7 +191,10 @@ def test_compose_files_and_gitignore_protect_secrets():
     backup = (ROOT / "docker-compose.backup.yml").read_text()
     assert "BACKUP_PASSPHRASE: ${BACKUP_PASSPHRASE:?" in backup          # refuses to start without a passphrase
     assert "uploads:/data/uploads:ro" in backup                          # the backup can only read the papers
-    assert "127.0.0.1:5000:5000" in (ROOT / "docker-compose.yml").read_text()
+    assert "bash /scripts/backup.sh" in backup                           # no need for the executable bit
+    compose = (ROOT / "docker-compose.yml").read_text()
+    assert "127.0.0.1:${INTERFACE_PORT:-5000}:5000" in compose           # local only, port can be changed
+    assert compose.count("${DB_PASSWORD:?") == 2                          # no start without a password
     ignore = (ROOT / ".gitignore").read_text()
     assert "backups/" in ignore and "certs/" in ignore
     assert "BACKUP_PASSPHRASE=\n" in (ROOT / ".env.example").read_text()  # the example has no real secret
