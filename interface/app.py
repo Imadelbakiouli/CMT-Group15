@@ -3,7 +3,10 @@ import os
 import requests
 from flask import Flask, jsonify
 
+from web_security import init_security  # CSRF protection and security headers (T05)
+
 app = Flask(__name__)
+init_security(app)
 ORCHESTRATOR_URL = os.environ.get("ORCHESTRATOR_URL", "http://localhost:5001")
 
 

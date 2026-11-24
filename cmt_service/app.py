@@ -7,9 +7,12 @@ from auth import auth_bp  # register, login, logout (T03)
 from conferences import conf_bp  # conferences and committee (T06)
 from reviews import review_bp  # reviewing (T10)
 from models import db  # the database object from models.py
+from api_security import init_security  # request checks and security headers (T05)
 
 # Create the Flask app (the web server for this service)
-app = Flask(__name__)
+# static_folder=None: no /static route at all, so an uploaded file can never be served by accident (T08)
+app = Flask(__name__, static_folder=None)
+init_security(app)
 
 # Where the database is: Docker gives us DATABASE_URL (PostgreSQL).
 # Without Docker we fall back to a small local test file (SQLite).
