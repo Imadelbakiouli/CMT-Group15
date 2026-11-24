@@ -31,6 +31,8 @@ services:
     build: ./ai_agent
     environment:
       PORT: 5003
+      CMT_SERVICE_URL: http://cmt_service:5002   # T13: the assistant calls the CMT service with the user's own token
+    depends_on: [cmt_service]
 
   db:
     image: postgres:16
