@@ -9,6 +9,7 @@ from conferences import conf_bp  # conferences and committee (T06)
 from user_profile import profile_bp  # profile and personal data (T04)
 from reviews import review_bp  # reviewing (T10)
 from models import db  # the database object from models.py
+from decisions import decision_bp  # decisions and results (T11)
 from api_security import init_security  # request checks and security headers (T05)
 from submissions import submission_bp  # submissions (T07)
 
@@ -29,6 +30,7 @@ app.register_blueprint(chair_bp)
 app.register_blueprint(auth_bp)
 app.register_blueprint(profile_bp)
 app.register_blueprint(conf_bp)
+app.register_blueprint(decision_bp)
 app.register_blueprint(review_bp)
 app.register_blueprint(submission_bp)
 
