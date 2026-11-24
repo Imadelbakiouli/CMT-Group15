@@ -22,7 +22,7 @@ Status: **Done** (as written) · **Detail** (done, we had to choose something th
 | UR-09 | Done | Overall score and confidence 1-5 and comments, editable until the review deadline | #5 |
 | UR-10 | Detail | Submit, edit/replace and withdraw. Only the corresponding author (the person who submitted) can edit or withdraw; co-authors can read | #10 |
 | UR-11 | Done | Authors see status, and decision plus reviews after release | #12 |
-| UR-12 | Partly | AI assistant that understands a fixed set of sentences (about 16 kinds of requests, one action per message). **No language model yet**, so no free natural language | #18 |
+| UR-12 | Detail | AI assistant with two planners: fixed sentences (default) or **Google Gemini** for free text (`AI_PLANNER=gemini`). About 16 kinds of requests, one action per message | #18, gemini |
 
 ## Functional requirements
 
@@ -43,7 +43,7 @@ Status: **Done** (as written) · **Detail** (done, we had to choose something th
 | FR-13 | Changed | Title (at most 255), abstract (at most 5000), PDF, up to 20 co-authors. **Co-authors must already have an account**, because the database links co-authors to users | #10 |
 | FR-14 | Detail | Edit/replace before the submission deadline. Withdrawing is possible at any time until a decision exists (the requirement names no deadline). A replaced PDF is deleted from disk | #10 |
 | FR-15 | Done | `GET /submissions/<id>/result`: status always, decision and reviews only after release | #12 |
-| FR-16 | Partly | See UR-12. Tools for lookups, invitations, assigning reviewers, decisions and withdrawing. Not yet: creating conferences, inviting reviewers, submitting papers (needs a PDF) | #18 |
+| FR-16 | Partly | See UR-12. Tools for lookups, invitations, assigning reviewers, decisions and withdrawing, with free text through Gemini. Not as a tool (use the web page): creating conferences, inviting reviewers, submitting papers (needs a PDF), writing reviews | #18, gemini |
 | FR-17 | Done | Withdrawing a paper, recording a decision and releasing a decision (sends email) wait for a "yes" from the same user, once, within 5 minutes | #18 |
 | FR-18 | Changed | Export as JSON (own profile, roles, invitations, own papers, own reviews, own activity; nothing about others). Deletion = anonymise name, email and affiliation, end all logins, remove pending invitations. Papers and reviews stay in the conference but are no longer linked to a person. Not handled: a chair who deletes their account leaves a conference without chair | #8 |
 
@@ -52,7 +52,7 @@ Status: **Done** (as written) · **Detail** (done, we had to choose something th
 | ID | Status | What we built | PR |
 |---|---|---|---|
 | NFR-01 | Done | Measured with `scripts/load_test.py`: 50 users at the same time, 1000 papers, 300 reviewers, in Docker with PostgreSQL through the HTTPS proxy: p95 = 0.15 s, 0 errors. A slow chair overview (7 s) was found and fixed. See `docs/load-test.md` | #17, #19 |
-| NFR-02 | Not yet | Needs a language model to be meaningful | - |
+| NFR-02 | Not yet | Gemini planner waits at most 8 seconds, then does nothing. To measure: `python scripts/measure_ai.py` with a key (writes `docs/ai-measurement.md`) | gemini |
 | NFR-03 | Detail | PDF at most 20 MB. **Added:** at most 100 pages, and a request limit of 21 MB. Capacity of 1000 submissions / 300 reviewers was tested in the load test (no problems). A real 20 MB upload was not part of it | #6, #7, #19 |
 | NFR-04 | Partly | Simple web page on the interface server (`interface/static/`): register, log in, conferences, invitations, submitting papers, reviewing, results and the AI assistant. Chair actions such as assigning reviewers and decisions are done through the assistant. Tried in Chromium; other browsers and phones not tested yet | web |
 | NFR-05 | Done | The orchestrator forwards requests to the CMT service and AI agent; the components run as separate containers (checked in Docker: only the interface is reachable from outside, ports 5001-5003 are not) | #7, #19 |
@@ -60,7 +60,7 @@ Status: **Done** (as written) · **Detail** (done, we had to choose something th
 | NFR-07 | Partly | Daily encrypted backup of database and PDFs (kept 14 days) with verify/restore script. **Tried in Docker with PostgreSQL (24 Nov 2026):** backup files are encrypted, `verify` notices a wrong passphrase, restoring the database removed data added after the backup, restored PDFs have the same checksum, the system works after the restore. The backup container runs every 24 hours, only the first run was seen | #13, #19 |
 | NFR-08 | Not yet | Needs a language model and a user test | - |
 | NFR-09 | Not yet | User test (T19) | - |
-| NFR-10 | Not yet | 50 test instructions exist (`tests/ai_instructions.py`), the rule-based planner gets 100% but the same people wrote patterns and instructions. Must be measured with a real model and instructions written by someone else | #18 |
+| NFR-10 | Not yet | 50 test instructions exist (`tests/ai_instructions.py`), the rule-based planner gets 100% but the same people wrote patterns and instructions. For Gemini: `python scripts/measure_ai.py` with a key measures accuracy and time; better still with instructions written by someone else | #18, gemini |
 
 ## Security requirements
 

@@ -35,6 +35,9 @@ services:
     environment:
       PORT: 5003
       CMT_SERVICE_URL: http://cmt_service:5002   # T13: the assistant calls the CMT service with the user's own token
+      AI_PLANNER: ${AI_PLANNER:-rules}           # T13: "rules" (no model) or "gemini" (needs GEMINI_API_KEY)
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}        # from .env, never in the repository
+      GEMINI_MODEL: ${GEMINI_MODEL:-}
     depends_on: [cmt_service]
 
   db:
