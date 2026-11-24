@@ -6,6 +6,9 @@ import sys
 
 import pytest
 
+# Cheap password hashing makes the tests several minutes faster. Real use keeps the default of 12.
+os.environ.setdefault("BCRYPT_ROUNDS", "4")
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 SERVICE_DIR = ROOT / "cmt_service"
 
