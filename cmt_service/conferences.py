@@ -9,10 +9,10 @@ Open points, not in the requirements, to agree on with the team:
 - deadlines in the past are allowed
 """
 from datetime import datetime, timezone
-from functools import wraps
 
 from flask import Blueprint, g, jsonify, request
 
+from access import conference_role_required
 from audit import log_action
 from auth import clean_text, error, login_required
 from models import Conference, ConferenceRole, Invitation, User, db
@@ -51,23 +51,9 @@ def conference_json(conf, user_id):
     }
 
 
-def chair_required(view):
-    """Only a chair of this conference gets through. Unknown conference: 404, not a chair: 403."""
-    @wraps(view)
-    @login_required
-    def wrapper(conference_id, *args, **kwargs):
-        conf = db.session.get(Conference, conference_id)
-        if conf is None:
-            return error("Conference not found", 404)
-        is_chair = ConferenceRole.query.filter_by(
-            conference_id=conference_id, user_id=g.user.id, role="chair").first()
-        if not is_chair:
-            log_action(g.user.id, f"denied: chair action on conference {conference_id}")
-            db.session.commit()
-            return error("Only a chair of this conference can do this", 403)
-        g.conference = conf
-        return view(conference_id, *args, **kwargs)
-    return wrapper
+# Only a chair of this conference gets through (role check from access.py, T05).
+# Unknown conference: 404, not a chair: 403 and a line in the audit log.
+chair_required = conference_role_required("chair")
 
 
 # ---- conferences (UR-03, FR-03) ----
@@ -119,7 +105,7 @@ def get_conference(conference_id):
 @chair_required
 def update_conference(conference_id):
     data = request.get_json(silent=True) or {}
-    conf = g.conference
+    conf = db.session.get(Conference, conference_id)
     if "name" in data:
         name = clean_text(data["name"], 255, required=True)
         if name is None:

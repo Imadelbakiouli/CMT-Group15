@@ -6,7 +6,10 @@ keeps the login token in a cookie, a hostile website could make the browser send
 
 1. Every unsafe request (POST, PUT, PATCH, DELETE) must carry the header X-CSRF-Token,
    and it must match the csrf_token cookie (double-submit cookie).
-2. The token is signed with a server secret, so a cookie planted by another site is refused.
+2. The token is signed with a server secret, so a made-up token is refused. Known limit: the token is
+   not tied to one user, so a real token of another visitor would be accepted if an attacker could
+   plant it in the victim's browser (for example from a sibling subdomain). SameSite=Strict
+   and a single host make that hard here.
 3. If the browser sends an Origin (or Referer) header, it must be this site.
 4. The cookie is SameSite=Strict, so browsers do not even send it from other sites.
 
@@ -67,14 +70,23 @@ def valid_token(token):
 
 
 def origin_ok():
-    """A browser says where a request comes from. If it does, it must be this site."""
+    """A browser says where a request comes from. If it does, it must be this site.
+
+    Something that is not a normal web address ("null", which sandboxed pages send, or garbage)
+    is refused. Before, it slipped through because an empty host was in the allowed list.
+    """
     source = request.headers.get("Origin") or request.headers.get("Referer")
     if not source:
         return True                          # not a browser (for example curl); the token still counts
-    allowed = {request.host}
-    allowed.update(o.strip() for o in os.environ.get("ALLOWED_ORIGINS", "").split(",") if o.strip())
-    allowed.update(urlparse(o).netloc for o in list(allowed))
-    return urlparse(source).netloc in allowed
+    parsed = urlparse(source)
+    if parsed.scheme not in ("http", "https") or not parsed.netloc:
+        return False
+    allowed = {request.host.lower()}
+    for entry in os.environ.get("ALLOWED_ORIGINS", "").split(","):
+        entry = entry.strip()
+        if entry:                            # a full address (https://cmt.example.org) or just the host
+            allowed.add((urlparse(entry).netloc or entry).lower())
+    return parsed.netloc.lower() in allowed
 
 
 def csrf_protect():
