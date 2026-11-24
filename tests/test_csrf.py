@@ -137,3 +137,28 @@ def test_security_headers_are_on_every_response(web):
         assert r.headers["X-Frame-Options"] == "DENY"
         assert "frame-ancestors 'none'" in r.headers["Content-Security-Policy"]
         assert "script-src 'self'" in r.headers["Content-Security-Policy"]     # no inline scripts: stops injected scripts
+
+
+# ---- origin check: things that are not a normal web address (found in review of PR 6) ----
+
+@pytest.mark.parametrize("origin", ["null", "garbage", "javascript:alert(1)", "file://",
+                                    "http://localhost@evil.example", "http://localhost.evil.example"])
+def test_origin_that_is_not_this_site_is_refused_even_with_a_valid_token(web, origin):
+    client, _ = web
+    token = token_from(client)
+    assert send(client, "post", token, Origin=origin).status_code == 403
+
+
+def test_unreadable_referer_is_refused(web):
+    client, _ = web
+    token = token_from(client)
+    assert send(client, "post", token, Referer="not-a-url").status_code == 403
+
+
+def test_origin_check_ignores_upper_case_and_accepts_a_bare_host_in_the_settings(web, monkeypatch):
+    client, _ = web
+    monkeypatch.setenv("ALLOWED_ORIGINS", "CMT.example.org, https://other.example.org")
+    token = token_from(client)
+    assert send(client, "post", token, Origin="https://cmt.EXAMPLE.org").status_code == 200
+    assert send(client, "post", token, Origin="https://other.example.org").status_code == 200
+    assert send(client, "post", token, Origin="https://evil.example").status_code == 403
