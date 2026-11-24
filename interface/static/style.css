@@ -1,5 +1,5 @@
-/* Design "academic": dark sidebar, warm white page, serif headings, one accent colour.
-   Change the colours in :root to change the whole look. */
+/* Layout: dark sidebar, light page, serif headings, one accent colour.
+   All colours are defined once in :root. */
 :root {
   --side: #1c1917;          /* sidebar */
   --side-active: #292524;
