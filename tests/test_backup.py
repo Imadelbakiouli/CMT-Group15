@@ -182,7 +182,8 @@ def test_nginx_config_uses_only_modern_tls_and_redirects_http():
     assert "return 301 https://" in conf
     assert "ssl_protocols       TLSv1.2 TLSv1.3;" in conf
     assert "TLSv1 " not in conf and "TLSv1.1" not in conf and "SSLv" not in conf
-    assert "Strict-Transport-Security" in conf and "server_tokens off" in conf
+    assert "Strict-Transport-Security" in conf
+    assert conf.count("server_tokens off") == 2      # in the http block too, found in the Docker test
     assert "proxy_pass http://interface:5000" in conf and "client_max_body_size 21m" in conf
 
 
@@ -190,7 +191,10 @@ def test_compose_files_and_gitignore_protect_secrets():
     backup = (ROOT / "docker-compose.backup.yml").read_text()
     assert "BACKUP_PASSPHRASE: ${BACKUP_PASSPHRASE:?" in backup          # refuses to start without a passphrase
     assert "uploads:/data/uploads:ro" in backup                          # the backup can only read the papers
-    assert "127.0.0.1:5000:5000" in (ROOT / "docker-compose.yml").read_text()
+    assert "bash /scripts/backup.sh" in backup                           # no need for the executable bit
+    compose = (ROOT / "docker-compose.yml").read_text()
+    assert "127.0.0.1:${INTERFACE_PORT:-5000}:5000" in compose           # local only, port can be changed
+    assert compose.count("${DB_PASSWORD:?") == 2                          # no start without a password
     ignore = (ROOT / ".gitignore").read_text()
     assert "backups/" in ignore and "certs/" in ignore
     assert "BACKUP_PASSPHRASE=\n" in (ROOT / ".env.example").read_text()  # the example has no real secret

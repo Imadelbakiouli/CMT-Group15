@@ -20,7 +20,17 @@ init_security(app)
 
 # Where the database is: Docker gives us DATABASE_URL (PostgreSQL).
 # Without Docker we fall back to a small local test file (SQLite).
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:///cmt_dev.db")
+def database_url():
+    """A plain postgresql:// address makes SQLAlchemy look for the driver 'psycopg' (version 3), but we install
+    psycopg2. So we name the driver ourselves. (Found when starting everything in Docker for the first time.)"""
+    url = os.environ.get("DATABASE_URL", "sqlite:///cmt_dev.db")
+    for plain in ("postgresql://", "postgres://"):
+        if url.startswith(plain):
+            return "postgresql+psycopg2://" + url[len(plain):]
+    return url
+
+
+app.config["SQLALCHEMY_DATABASE_URI"] = database_url()
 
 # Connect the database to this app
 db.init_app(app)

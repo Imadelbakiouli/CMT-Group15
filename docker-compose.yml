@@ -2,7 +2,7 @@
 services:
   interface:
     build: ./interface
-    ports: ["127.0.0.1:5000:5000"]   # only this computer; with HTTPS (docker-compose.https.yml) browsers use the proxy
+    ports: ["127.0.0.1:${INTERFACE_PORT:-5000}:5000"]   # only this computer. Port 5000 is busy on some Macs (AirPlay): set INTERFACE_PORT in .env
     environment:
       ORCHESTRATOR_URL: http://orchestrator:5001
       CSRF_SECRET: ${CSRF_SECRET:-}              # T05: long random string, see .env.example
@@ -21,11 +21,14 @@ services:
     build: ./cmt_service
     environment:
       PORT: 5002
-      DATABASE_URL: postgresql://cmt:${DB_PASSWORD}@db:5432/cmt
+      DATABASE_URL: postgresql+psycopg2://cmt:${DB_PASSWORD:?Copy .env.example to .env first}@db:5432/cmt
       UPLOAD_DIR: /data/uploads                  # T08: papers are stored here, outside the code folder
     volumes:
       - uploads:/data/uploads
-    depends_on: [db]
+    depends_on:
+      db:
+        condition: service_healthy               # start only when PostgreSQL accepts connections
+    restart: on-failure
 
   ai_agent:
     build: ./ai_agent
@@ -38,10 +41,15 @@ services:
     image: postgres:16
     environment:
       POSTGRES_USER: cmt
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Copy .env.example to .env first}
       POSTGRES_DB: cmt
     volumes:
       - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cmt -d cmt"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
 
 volumes:
   db_data:

@@ -1,7 +1,7 @@
 # HTTPS in front of the interface (T15, SEC-11). Optional, add it to the normal file:
 #   scripts/make-dev-cert.sh
 #   docker compose -f docker-compose.yml -f docker-compose.https.yml up --build
-# Then open https://localhost (not tested in Docker yet, see the PR).
+# Then open https://localhost (tried with Docker Desktop on a Mac, 24 Nov 2026).
 services:
   proxy:
     image: nginx:1.27-alpine

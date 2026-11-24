@@ -51,13 +51,13 @@ Status: **Done** (as written) · **Detail** (done, we had to choose something th
 
 | ID | Status | What we built | PR |
 |---|---|---|---|
-| NFR-01 | Not yet | Load test planned (T18) | - |
+| NFR-01 | Done | Measured with `scripts/load_test.py`: 50 users at the same time, 1000 papers, 300 reviewers, in Docker with PostgreSQL through the HTTPS proxy: p95 = 0.15 s, 0 errors. A slow chair overview (7 s) was found and fixed. See `docs/load-test.md` | #17, #19 |
 | NFR-02 | Not yet | Needs a language model to be meaningful | - |
-| NFR-03 | Detail | PDF at most 20 MB. **Added:** at most 100 pages, and a request limit of 21 MB. Capacity of 1000 submissions / 300 reviewers not measured yet | #6, #7 |
+| NFR-03 | Detail | PDF at most 20 MB. **Added:** at most 100 pages, and a request limit of 21 MB. Capacity of 1000 submissions / 300 reviewers was tested in the load test (no problems). A real 20 MB upload was not part of it | #6, #7, #19 |
 | NFR-04 | Not yet | There is no web interface yet, only the API | - |
-| NFR-05 | Done | The orchestrator forwards requests to the CMT service and AI agent; the four components run as separate containers | #7 |
+| NFR-05 | Done | The orchestrator forwards requests to the CMT service and AI agent; the components run as separate containers (checked in Docker: only the interface is reachable from outside, ports 5001-5003 are not) | #7, #19 |
 | NFR-06 | Partly | Access, export and deletion exist (FR-18). Retention periods and a privacy statement are not written | #8 |
-| NFR-07 | Partly | Daily encrypted backup of database and PDFs (kept 14 days) with verify/restore script. **Not tried in Docker yet** | #13 |
+| NFR-07 | Partly | Daily encrypted backup of database and PDFs (kept 14 days) with verify/restore script. **Tried in Docker with PostgreSQL (24 Nov 2026):** backup files are encrypted, `verify` notices a wrong passphrase, restoring the database removed data added after the backup, restored PDFs have the same checksum, the system works after the restore. The backup container runs every 24 hours, only the first run was seen | #13, #19 |
 | NFR-08 | Not yet | Needs a language model and a user test | - |
 | NFR-09 | Not yet | User test (T19) | - |
 | NFR-10 | Not yet | 50 test instructions exist (`tests/ai_instructions.py`), the rule-based planner gets 100% but the same people wrote patterns and instructions. Must be measured with a real model and instructions written by someone else | #18 |
@@ -76,7 +76,7 @@ Status: **Done** (as written) · **Detail** (done, we had to choose something th
 | SEC-08 | Detail | The planner only sees the user's own sentence; what the system answers (titles, abstracts, reviews) is only shown and never goes back into the planner. One message leads to at most one action. Tested with instructions hidden in a title, abstract and review. Must be checked again when a language model is added | #18 |
 | SEC-09 | Detail | Safe database queries (SQLAlchemy), strict checks on input, only JSON or file uploads are accepted, security headers, errors without details. Output escaping: text is stored as typed and sent as JSON, whoever shows it on a web page must insert it as text, never as HTML | #3, #6 |
 | SEC-10 | Done | Content must start with `%PDF-` (name and Content-Type are not trusted), at most 20 MB, not encrypted, 1-100 pages, rewritten as a new PDF without annotations, page actions and metadata, stored under a random name, readable only by the service | #6 |
-| SEC-11 | Partly | Backups are encrypted (AES-256). Optional HTTPS proxy (TLS 1.2+, HSTS). **Not done:** traffic between the containers is plain http; PDFs and the database are not encrypted on disk. **Not tried in Docker yet** | #13 |
+| SEC-11 | Partly | Backups are encrypted (AES-256). Optional HTTPS proxy (TLS 1.2+, HSTS). **Tried in Docker (24 Nov 2026):** https works with a self-signed certificate, http redirects, HSTS and a Secure/SameSite=Strict cookie are set, cross-site and `Origin: null` requests get 403, TLS 1.2/1.3 only. **Not done:** traffic between the containers is plain http; PDFs and the database are not encrypted on disk | #13 |
 | SEC-12 | Detail | 5 wrong passwords in a row lock the account for 15 minutes (also when guessed through profile routes). CSRF: signed double-submit token plus a check of the Origin header on the interface, SameSite=Strict cookie. Known limit: the CSRF token is not tied to one user | #3, #6, #9 |
 | SEC-13 | Partly | Logged: register, login, failed logins, locks, profile changes, exports, deletion, conference changes, invitations, assignments, submissions, edits, withdrawals, review downloads and changes, decisions, releases, failed mails and every denied action. **Not yet:** a way to read the log in the system | all |
 

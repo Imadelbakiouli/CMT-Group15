@@ -6,7 +6,7 @@ services:
   backup:
     image: postgres:16            # same version as the database, has pg_dump, openssl and tar
     entrypoint: ["bash", "-c"]
-    command: ["while true; do /scripts/backup.sh || echo 'BACKUP FAILED'; sleep 86400; done"]
+    command: ["while true; do bash /scripts/backup.sh || echo 'BACKUP FAILED'; sleep 86400; done"]   # 'bash' in front: works even when the file lost its executable bit (Windows)
     environment:
       PGHOST: db
       PGUSER: cmt

@@ -181,3 +181,15 @@ def test_service_serves_no_static_files(cmt):
     client, module = cmt
     assert module.app.static_folder is None
     assert client.get("/static/anything.pdf").status_code == 404
+
+
+# ---- database address (found by starting the system in Docker) ----
+
+def test_a_plain_postgresql_address_gets_the_driver_we_install(cmt, monkeypatch):
+    _, module = cmt
+    for given, expected in [("postgresql://cmt:pw@db:5432/cmt", "postgresql+psycopg2://cmt:pw@db:5432/cmt"),
+                            ("postgres://cmt:pw@db/cmt", "postgresql+psycopg2://cmt:pw@db/cmt"),
+                            ("postgresql+psycopg2://cmt:pw@db/cmt", "postgresql+psycopg2://cmt:pw@db/cmt"),
+                            ("sqlite://", "sqlite://")]:
+        monkeypatch.setenv("DATABASE_URL", given)
+        assert module.database_url() == expected
