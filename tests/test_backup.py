@@ -182,7 +182,8 @@ def test_nginx_config_uses_only_modern_tls_and_redirects_http():
     assert "return 301 https://" in conf
     assert "ssl_protocols       TLSv1.2 TLSv1.3;" in conf
     assert "TLSv1 " not in conf and "TLSv1.1" not in conf and "SSLv" not in conf
-    assert "Strict-Transport-Security" in conf and "server_tokens off" in conf
+    assert "Strict-Transport-Security" in conf
+    assert conf.count("server_tokens off") == 2      # in the http block too, found in the Docker test
     assert "proxy_pass http://interface:5000" in conf and "client_max_body_size 21m" in conf
 
 

@@ -30,8 +30,24 @@ Setup: everything on one MacBook (Apple M1 Pro), CMT service started with `pytho
 
 The load test found one real problem: the results overview of the chair (T11) asked the database several times per paper and took more than 7 seconds with 1000 papers. It rarely shows in the overall numbers because the chair calls it seldom, but a chair waiting 7 seconds is not a "normal request within 1 second". It now uses three queries for the whole conference. `tests/test_decisions.py` has a test that fails if the number of queries grows with the number of papers again.
 
+## Second measurement: Docker, PostgreSQL and HTTPS (24 Nov 2026)
+
+Setup: the real system started with `docker compose -f docker-compose.yml -f docker-compose.https.yml up --build` on the same MacBook (Docker Desktop, 8 processors): nginx proxy, interface, orchestrator, CMT service and PostgreSQL 16 as separate containers. The load script went through **all of them** (`--base-url https://localhost --prefix /api/cmt --insecure`). 1000 papers, 300 reviewers, 50 users, 30 seconds.
+
+| | Docker, PostgreSQL, HTTPS |
+|---|---|
+| Requests | 7647 |
+| Requests per second | 255 |
+| Errors | 0 |
+| p50 / p95 / p99 / max | 0.087 / **0.149** / 0.195 / 0.283 s |
+| **NFR-01 (p95 under 1 s)** | **met** |
+| Chair's results overview, median | 0.10 s |
+| Seeding 1000 papers, 300 reviewers, 30 authors through the whole chain | about 45 s |
+
+Every request now travels through three Flask development servers and the proxy, so it is slower per request than the direct run (p50 0.09 s instead of 0.03 s), but far below the limit. Also checked in this run: 1000 papers and 300 reviewers in one conference (NFR-03 capacity) work without problems.
+
 ## What this does NOT show yet
-- It was measured against SQLite on a development server on one laptop, not PostgreSQL in Docker with four containers. **Repeat it at home with Docker** and put the numbers here.
+- One laptop runs both the system and the load script, so they compete for the same processors. A separate machine would be a harder test.
 - It does not include the AI assistant (NFR-02, 95% within 10 seconds): that is not built yet.
 - Registering and logging in were not part of the 50-user phase. A login costs about a quarter of a second of processor time on purpose (bcrypt cost 12, SEC-02).
 - The Flask development server is not meant for production. For real use a production server such as gunicorn is needed. We did not switch, because the service creates its tables when it starts, which would collide when several workers start at the same time.

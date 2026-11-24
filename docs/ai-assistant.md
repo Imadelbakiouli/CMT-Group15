@@ -35,7 +35,7 @@ Answers have a `type`: `reply` (text only), `result` (done or looked up, with `d
 - Not in the tool list: creating a conference, inviting reviewers, submitting a paper (needs a PDF), editing profile. Add a `Tool` in `agent_tools.py` and a pattern, and make sure it is risky if it changes something important.
 - The pending confirmations are in memory: one agent process only, and they are lost on restart.
 - The assistant has no memory of earlier messages ("do the same for paper 5" does not work).
-- Not tried in Docker (the agent now has `CMT_SERVICE_URL` in `docker-compose.yml`).
+- Tried in Docker (24 Nov 2026): a message through interface, orchestrator and agent reaches the CMT service, and "withdraw paper 1" asks for confirmation. Only with the rule-based planner.
 
 ## Adding a language model later
 1. Write a class with `plan(message) -> Plan`, like `RuleBasedPlanner`. Give the model `agent_tools.TOOLS` (name, description, parameters) as its tools and ONLY the user's sentence as input. Never put system answers or paper text in the prompt as instructions. Return `Plan("tool", tool=name, args=arguments)` or `Plan("reply", text=...)`.

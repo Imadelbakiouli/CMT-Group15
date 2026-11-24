@@ -3,7 +3,7 @@ Secure AI-driven Conference Management Tool – SE4CySec II Group 15
 
 ## Backups and HTTPS (T15)
 
-Both are optional extras on top of `docker compose up`. They are not tried in Docker yet, the scripts are tested with `pytest tests/test_backup.py`.
+Both are optional extras on top of `docker compose up`. Both were tried with Docker Desktop on a Mac on 24 Nov 2026 (see `docs/requirements-changes.md`). The scripts are also tested with `pytest tests/test_backup.py`.
 
 **Encrypted daily backup** of the database and the uploaded papers:
 1. Put `BACKUP_PASSPHRASE=...` in `.env` (see `.env.example`). Keep the passphrase apart from the backups, without it they cannot be opened.
