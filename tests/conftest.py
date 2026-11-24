@@ -55,3 +55,73 @@ CONFERENCE = {
 
 def make_conference(client, headers, **overrides):
     return client.post("/conferences", json={**CONFERENCE, **overrides}, headers=headers)
+
+
+# ---- the whole stack in one process (interface -> orchestrator -> cmt_service / ai_agent) ----
+
+class FakeAnswer:
+    """Looks like the answer of the requests library."""
+
+    def __init__(self, response):
+        self.status_code = response.status_code
+        self.content = response.data
+        self.headers = response.headers
+
+    def json(self):
+        import json
+        return json.loads(self.content)
+
+
+def load_service(name):
+    """Load <name>/app.py as a module (own module name, so the four app.py files do not clash)."""
+    folder = ROOT / name
+    sys.path.insert(0, str(folder))
+    try:
+        spec = importlib.util.spec_from_file_location(f"{name}_stack_test", folder / "app.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+    finally:
+        sys.path.remove(str(folder))
+    return module
+
+
+@pytest.fixture
+def stack(monkeypatch):
+    """All four servers as real Flask apps that call each other without a network.
+
+    Returns an object with .interface, .orchestrator, .cmt, .ai (test clients), .calls (every call
+    that went between servers) and .routes (set an entry to None to make a server 'unreachable').
+    """
+    import requests
+
+    monkeypatch.setenv("DATABASE_URL", "sqlite://")
+    monkeypatch.setenv("COOKIE_SECURE", "false")
+    monkeypatch.setenv("CMT_SERVICE_URL", "http://cmt.test")
+    monkeypatch.setenv("AI_AGENT_URL", "http://ai.test")
+    monkeypatch.setenv("ORCHESTRATOR_URL", "http://orch.test")
+
+    class Stack:
+        pass
+
+    s = Stack()
+    s.cmt = load_service("cmt_service").app.test_client()
+    s.ai = load_service("ai_agent").app.test_client()
+    s.orchestrator = load_service("orchestrator").app.test_client()
+    s.interface = load_service("interface").app.test_client()
+    s.routes = {"http://cmt.test": s.cmt, "http://ai.test": s.ai, "http://orch.test": s.orchestrator}
+    s.calls = []
+
+    def fake_request(method, url, params=None, data=None, headers=None, timeout=None, **kwargs):
+        s.calls.append({"method": method, "url": url, "headers": dict(headers or {}), "params": params})
+        for base, client in s.routes.items():
+            if url.startswith(base):
+                if client is None:
+                    raise requests.ConnectionError("server is down")
+                return FakeAnswer(client.open(url[len(base):], method=method, query_string=params,
+                                              data=data, headers=headers))
+        raise requests.ConnectionError("unknown server")
+
+    monkeypatch.setattr(requests, "request", fake_request)
+    monkeypatch.setattr(requests.api, "request", fake_request)
+    monkeypatch.setattr(requests, "get", lambda url, **kw: fake_request("GET", url, **kw))
+    return s
