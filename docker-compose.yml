@@ -5,6 +5,8 @@ services:
     ports: ["5000:5000"]
     environment:
       ORCHESTRATOR_URL: http://orchestrator:5001
+      CSRF_SECRET: ${CSRF_SECRET:-}              # T05: long random string, see .env.example
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}      # T05: false only for a demo over plain http
     depends_on: [orchestrator]
 
   orchestrator:
@@ -20,6 +22,9 @@ services:
     environment:
       PORT: 5002
       DATABASE_URL: postgresql://cmt:${DB_PASSWORD}@db:5432/cmt
+      UPLOAD_DIR: /data/uploads                  # T08: papers are stored here, outside the code folder
+    volumes:
+      - uploads:/data/uploads
     depends_on: [db]
 
   ai_agent:
@@ -38,3 +43,4 @@ services:
 
 volumes:
   db_data:
+  uploads:
