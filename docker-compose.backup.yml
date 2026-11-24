@@ -1,0 +1,22 @@
+# Daily encrypted backup of the database and the uploaded papers (T15, NFR-07, SEC-11). Optional:
+#   docker compose -f docker-compose.yml -f docker-compose.backup.yml up -d
+# Needs BACKUP_PASSPHRASE in .env. Backups end up in ./backups (keep a copy somewhere else too).
+# Check one with:  CONFIRM= BACKUP_PASSPHRASE=... scripts/restore.sh verify backups/<file>
+services:
+  backup:
+    image: postgres:16            # same version as the database, has pg_dump, openssl and tar
+    entrypoint: ["bash", "-c"]
+    command: ["while true; do /scripts/backup.sh || echo 'BACKUP FAILED'; sleep 86400; done"]
+    environment:
+      PGHOST: db
+      PGUSER: cmt
+      PGDATABASE: cmt
+      DB_PASSWORD: ${DB_PASSWORD}
+      BACKUP_PASSPHRASE: ${BACKUP_PASSPHRASE:?Set BACKUP_PASSPHRASE in .env}
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
+      UPLOAD_DIR: /data/uploads
+    volumes:
+      - ./scripts:/scripts:ro
+      - uploads:/data/uploads:ro
+      - ./backups:/backups
+    depends_on: [db]

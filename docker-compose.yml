@@ -2,7 +2,7 @@
 services:
   interface:
     build: ./interface
-    ports: ["5000:5000"]
+    ports: ["127.0.0.1:5000:5000"]   # only this computer; with HTTPS (docker-compose.https.yml) browsers use the proxy
     environment:
       ORCHESTRATOR_URL: http://orchestrator:5001
       CSRF_SECRET: ${CSRF_SECRET:-}              # T05: long random string, see .env.example

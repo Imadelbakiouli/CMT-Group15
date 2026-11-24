@@ -221,3 +221,7 @@ __marimo__/
 
 # Uploaded papers (T08)
 uploads/
+
+# Backups and certificates (T15), never commit these
+backups/
+certs/
