@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CMT – EAMT 2028</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <!-- All JavaScript is in app.js (the Content-Security-Policy blocks inline scripts) -->
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <header>
+    <h1>Conference Management Tool</h1>
+    <div id="user-bar" hidden>
+      <span id="user-name"></span>
+      <button id="logout-button" type="button">Log out</button>
+    </div>
+  </header>
+
+  <p id="message" role="status"></p>
+
+  <!-- ===== Not logged in: login and register ===== -->
+  <main id="login-view" hidden>
+    <section>
+      <h2>Log in</h2>
+      <form id="login-form">
+        <label>Email <input name="email" type="email" required></label>
+        <label>Password <input name="password" type="password" required></label>
+        <button type="submit">Log in</button>
+      </form>
+    </section>
+    <section>
+      <h2>Register</h2>
+      <form id="register-form">
+        <label>Name <input name="name" required maxlength="120"></label>
+        <label>Email <input name="email" type="email" required></label>
+        <label>Affiliation <input name="affiliation" maxlength="255"></label>
+        <label>Password (at least 10 characters) <input name="password" type="password" required minlength="10"></label>
+        <button type="submit">Register</button>
+      </form>
+    </section>
+  </main>
+
+  <!-- ===== Logged in: dashboard ===== -->
+  <main id="app-view" hidden>
+    <section class="wide">
+      <h2>AI assistant</h2>
+      <p class="hint">Ask one thing at a time, for example "show my papers" or "assign anna@example.org to paper 1 in conference 1". Say "help" for more.</p>
+      <div id="chat-log"></div>
+      <form id="chat-form">
+        <input name="message" maxlength="2000" placeholder="Type your request..." required>
+        <button type="submit">Send</button>
+      </form>
+    </section>
+
+    <section>
+      <h2>Conferences</h2>
+      <ul id="conference-list"></ul>
+      <details>
+        <summary>Create a conference</summary>
+        <form id="conference-form">
+          <label>Name <input name="name" required maxlength="255"></label>
+          <label>Description <textarea name="description" maxlength="5000"></textarea></label>
+          <label>Submission deadline <input name="submission_deadline" type="datetime-local" required></label>
+          <label>Review deadline <input name="review_deadline" type="datetime-local" required></label>
+          <label>Notification deadline <input name="notification_deadline" type="datetime-local" required></label>
+          <button type="submit">Create</button>
+        </form>
+      </details>
+    </section>
+
+    <section>
+      <h2>My invitations</h2>
+      <ul id="invitation-list"></ul>
+    </section>
+
+    <section>
+      <h2>My papers</h2>
+      <ul id="paper-list"></ul>
+      <details>
+        <summary>Submit a paper</summary>
+        <form id="paper-form">
+          <label>Conference <select name="conference_id" id="paper-conference" required></select></label>
+          <label>Title <input name="title" required maxlength="255"></label>
+          <label>Abstract <textarea name="abstract" required maxlength="5000"></textarea></label>
+          <label>Co-author emails (comma separated, they need an account) <input name="coauthors"></label>
+          <label>PDF (max 20 MB) <input name="pdf" type="file" accept="application/pdf" required></label>
+          <button type="submit">Submit</button>
+        </form>
+      </details>
+    </section>
+
+    <section>
+      <h2>Papers to review</h2>
+      <ul id="review-list"></ul>
+    </section>
+
+    <section class="wide">
+      <h2>Details</h2>
+      <pre id="output">Click a button to see details here.</pre>
+    </section>
+  </main>
+</body>
+</html>
